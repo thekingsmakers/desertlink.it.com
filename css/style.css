@@ -1984,6 +1984,30 @@ ul {
     transform: rotate(180deg);
 }
 
+.card__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--secondary);
+    transition: color var(--transition);
+}
+
+.card__link:hover {
+    color: var(--accent);
+}
+
+.card__link i {
+    font-size: 0.8rem;
+    transition: transform var(--transition);
+}
+
+.card__link:hover i {
+    transform: translateX(4px);
+}
+
 /* ===========================
    Counter Animation
    =========================== */
