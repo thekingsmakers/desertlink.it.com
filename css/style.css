@@ -1374,6 +1374,108 @@ ul {
     margin: 0 auto;
 }
 
+.page-hero--short {
+    padding: 120px 0 60px;
+}
+
+.page-hero__meta {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.55);
+    margin-bottom: 8px;
+}
+
+.page-hero__meta a {
+    color: var(--color-accent);
+    transition: color var(--transition);
+}
+
+.page-hero__meta a:hover {
+    color: var(--color-secondary);
+}
+
+/* ===========================
+   Content Body (Blog/Article)
+   =========================== */
+
+.content-body {
+    max-width: 780px;
+    margin: 0 auto;
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--color-text);
+}
+
+.content-body h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 48px 0 16px;
+    color: var(--color-primary);
+}
+
+.content-body h3 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 32px 0 12px;
+    color: var(--color-primary);
+}
+
+.content-body p {
+    margin-bottom: 20px;
+}
+
+.content-body ul,
+.content-body ol {
+    margin-bottom: 20px;
+    padding-left: 24px;
+}
+
+.content-body li {
+    margin-bottom: 8px;
+}
+
+.content-body strong {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.cta--inline {
+    background: var(--color-alt);
+    padding: 40px;
+    border-radius: 16px;
+    text-align: center;
+    margin-top: 48px;
+}
+
+.cta--inline h3 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: 12px;
+}
+
+.cta--inline p {
+    font-size: 16px;
+    color: var(--color-muted);
+    margin-bottom: 24px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.cta--inline .btn + .btn {
+    margin-left: 12px;
+}
+
+@media (max-width: 600px) {
+    .cta--inline {
+        padding: 28px 20px;
+    }
+    .cta--inline .btn + .btn {
+        margin-left: 0;
+        margin-top: 12px;
+    }
+}
+
 /* ===========================
    About Page - Values
    =========================== */
