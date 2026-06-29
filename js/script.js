@@ -254,6 +254,11 @@
         });
     });
 
+    // --- Strip index.html from URL on load ---
+    if (window.location.pathname.endsWith('/index.html') || window.location.pathname === '/index.html') {
+        history.replaceState(null, '', window.location.pathname.replace(/\/?index\.html$/, '') || '/');
+    }
+
     // --- SPA Navigation (static URL) ---
     function reinitComponents() {
         var animEls = document.querySelectorAll('.anim-hidden, .anim-hidden-left, .anim-hidden-right, .anim-hidden-scale, .anim-stagger:not(.anim-visible)');
