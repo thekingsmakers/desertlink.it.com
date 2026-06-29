@@ -11,7 +11,7 @@
     var btnEmail = document.getElementById('sendEmail');
     var btnWhatsApp = document.getElementById('sendWhatsApp');
 
-    var WA_NUMBER = '254700123456';
+    var WA_NUMBER = '254795909156';
     var EMAIL_TO = 'info@desertlinkit.com';
 
     // --- Mobile menu ---
