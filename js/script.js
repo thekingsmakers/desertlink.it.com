@@ -12,7 +12,7 @@
     var btnWhatsApp = document.getElementById('sendWhatsApp');
 
     var WA_NUMBER = '254795909156';
-    var EMAIL_TO = 'info@desertlinkit.com';
+    var EMAIL_TO = 'info@desertlink.it.com';
 
     // --- Mobile menu ---
     if (hamburger && nav) {
