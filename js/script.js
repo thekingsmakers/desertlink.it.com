@@ -254,4 +254,80 @@
         });
     });
 
+    // --- SPA Navigation (static URL) ---
+    function reinitComponents() {
+        var animEls = document.querySelectorAll('.anim-hidden, .anim-hidden-left, .anim-hidden-right, .anim-hidden-scale, .anim-stagger:not(.anim-visible)');
+        if ('IntersectionObserver' in window && animEls.length) {
+            var obs = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('anim-visible');
+                        obs.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+            animEls.forEach(function (el) { obs.observe(el); });
+        } else {
+            animEls.forEach(function (el) { el.classList.add('anim-visible'); });
+        }
+        document.querySelectorAll('.faq-item').forEach(function (item) {
+            var q = item.querySelector('.faq-question');
+            if (q) {
+                q.addEventListener('click', function () {
+                    var open = item.classList.contains('faq-item--open');
+                    document.querySelectorAll('.faq-item').forEach(function (o) { o.classList.remove('faq-item--open'); });
+                    if (!open) item.classList.add('faq-item--open');
+                });
+            }
+        });
+        document.querySelectorAll('.card__expand').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var parent = this.closest('.card');
+                var detail = parent ? parent.querySelector('.service-detail') : null;
+                if (detail) {
+                    var open = detail.classList.contains('service-detail--open');
+                    if (open) {
+                        detail.classList.remove('service-detail--open');
+                        btn.classList.remove('card__expand--open');
+                        btn.innerHTML = 'View Details <i class="fas fa-chevron-down" aria-hidden="true"></i>';
+                    } else {
+                        detail.classList.add('service-detail--open');
+                        btn.classList.add('card__expand--open');
+                        btn.innerHTML = 'Hide Details <i class="fas fa-chevron-up" aria-hidden="true"></i>';
+                    }
+                }
+            });
+        });
+    }
+
+    function navigateTo(url) {
+        fetch(url)
+            .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
+            .then(function (html) {
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                var newMain = doc.querySelector('main');
+                var oldMain = document.querySelector('main');
+                if (!newMain || !oldMain) { window.location.href = url; return; }
+                oldMain.innerHTML = newMain.innerHTML;
+                document.title = doc.title;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                if (nav && nav.classList.contains('nav--open')) {
+                    nav.classList.remove('nav--open');
+                    if (hamburger) { hamburger.classList.remove('hamburger--open'); hamburger.setAttribute('aria-expanded', 'false'); }
+                    document.body.style.overflow = '';
+                }
+                reinitComponents();
+            })
+            .catch(function () { window.location.href = url; });
+    }
+
+    document.addEventListener('click', function (e) {
+        var link = e.target.closest('a');
+        if (!link) return;
+        var href = link.getAttribute('href');
+        if (!href || href === '#' || href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto') || href.startsWith('tel') || href.startsWith('file') || !href.endsWith('.html')) return;
+        e.preventDefault();
+        navigateTo(href);
+    });
+
 })();
