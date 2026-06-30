@@ -21,22 +21,11 @@
             .catch(function () { return ''; });
     }
 
-    // Get country info from IP
-    function getGeo() {
-        return fetch('https://ipapi.co/json/')
-            .then(function (r) { return r.json(); })
-            .then(function (d) { return { country: d.country_name || '', countryCode: d.country_code || '', city: d.city || '' }; })
-            .catch(function () { return { country: '', countryCode: '', city: '' }; });
-    }
-
-    // Build the visit record
-    function buildVisit(ip, geo) {
+    // Build the visit record (geo resolved server-side by n8n)
+    function buildVisit(ip) {
         return {
             id: uuid(),
             ip: ip,
-            country: geo.country,
-            countryCode: geo.countryCode,
-            city: geo.city,
             page: window.location.pathname,
             referrer: document.referrer || '',
             timestamp: new Date().toISOString(),
@@ -77,13 +66,11 @@
 
     // Init
     if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        Promise.all([getIP(), getGeo()])
-            .then(function (results) {
-                var visit = buildVisit(results[0], results[1]);
-                sendVisit(visit);
-                flushQueue();
-            })
-            .catch(function () {});
+        getIP().then(function (ip) {
+            var visit = buildVisit(ip);
+            sendVisit(visit);
+            flushQueue();
+        }).catch(function () {});
     }
 
 })();
