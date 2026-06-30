@@ -9,38 +9,60 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="css/style.css">
     <style>
         body { background: #f5f5f7; }
         .analytics-header { background: var(--color-primary); color: #fff; padding: 24px 0; }
         .analytics-header h1 { font-size: 1.5rem; font-weight: 700; margin: 0; }
         .analytics-header p { opacity: 0.8; font-size: 0.9rem; margin: 4px 0 0 0; }
-        .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
-        .analytics-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-        .analytics-card__num { font-size: 2rem; font-weight: 700; color: var(--color-primary); }
-        .analytics-card__label { font-size: 0.85rem; color: var(--color-text-muted); margin-top: 4px; }
-        .analytics-section { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-        .analytics-section h2 { font-size: 1.1rem; font-weight: 600; margin: 0 0 16px 0; color: var(--color-text); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th { text-align: left; padding: 10px 12px; border-bottom: 2px solid #eee; font-weight: 600; color: var(--color-text); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+        .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .analytics-card { background: #fff; border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .analytics-card__num { font-size: 1.8rem; font-weight: 700; color: var(--color-primary); line-height: 1.2; }
+        .analytics-card__label { font-size: 0.8rem; color: var(--color-text-muted); margin-top: 2px; }
+        .analytics-card__sub { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0; }
+        .analytics-section { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .analytics-section h2 { font-size: 1.05rem; font-weight: 600; margin: 0 0 16px 0; color: var(--color-text); }
+        .analytics-section h2 i { width: 22px; color: var(--color-primary); }
+        .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        th { text-align: left; padding: 8px 10px; border-bottom: 2px solid #eee; font-weight: 600; color: var(--color-text); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
         tr:hover td { background: #f8f9fa; }
-        .flag { font-size: 1.2rem; margin-right: 6px; }
+        .flag { font-size: 1.1rem; margin-right: 4px; }
         .bar { height: 8px; border-radius: 4px; background: var(--color-secondary); max-width: 100%; min-width: 4px; }
-        .bar-wrap { display: flex; align-items: center; gap: 10px; }
+        .bar-wrap { display: flex; align-items: center; gap: 8px; }
         .bar-wrap .bar { flex: 1; }
-        .bar-wrap .pct { font-size: 0.8rem; color: var(--color-text-muted); min-width: 36px; text-align: right; }
+        .bar-wrap .pct { font-size: 0.78rem; color: var(--color-text-muted); min-width: 32px; text-align: right; }
+        .badge { display: inline-block; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+        .badge-proxy { background: #fce4ec; color: #c62828; }
+        .badge-hosting { background: #e3f2fd; color: #1565c0; }
+        .badge-mobile { background: #f3e5f5; color: #6a1b9a; }
+        .badge-ok { background: #e8f5e9; color: #2e7d32; }
+        #map { height: 340px; border-radius: 10px; margin-top: 4px; }
         .loading { text-align: center; padding: 80px 20px; color: var(--color-text-muted); }
         .loading i { font-size: 2rem; margin-bottom: 12px; }
         .error { text-align: center; padding: 80px 20px; color: #e74c3c; }
-        @media (max-width: 600px) {
-            table { font-size: 0.8rem; }
-            th, td { padding: 6px 8px; }
-        }
+        .scroll-x { overflow-x: auto; }
+        .code { font-family: 'Courier New', monospace; font-size: 0.78rem; background: #f5f5f5; padding: 1px 5px; border-radius: 3px; }
         .nav-pages { display: flex; flex-wrap: wrap; gap: 8px; }
-        .nav-pages a { background: #f0f0f0; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; color: var(--color-primary); text-decoration: none; transition: background 0.2s; }
-        .nav-pages a:hover { background: var(--color-secondary); color: #fff; }
-        .last-updated { font-size: 0.8rem; color: var(--color-text-muted); margin-top: 24px; text-align: right; }
+        .nav-pages a { background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; color: #fff; text-decoration: none; transition: background 0.2s; }
+        .nav-pages a:hover { background: rgba(255,255,255,0.3); }
+        .last-updated { font-size: 0.8rem; color: var(--color-text-muted); margin-top: 20px; text-align: right; }
+        .day-chart { display: flex; align-items: flex-end; gap: 3px; height: 100px; padding-top: 10px; }
+        .day-chart__bar { flex: 1; min-width: 12px; background: var(--color-secondary); border-radius: 3px 3px 0 0; position: relative; transition: height 0.3s; cursor: pointer; }
+        .day-chart__bar:hover { opacity: 0.8; }
+        .day-chart__label { text-align: center; font-size: 0.65rem; color: var(--color-text-muted); margin-top: 4px; }
+        .day-chart__count { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-weight: 600; color: var(--color-text); display: none; }
+        .day-chart__bar:hover .day-chart__count { display: block; }
+        .sec-icon { width: 16px; text-align: center; display: inline-block; }
+        @media (max-width: 700px) {
+            .cols-2 { grid-template-columns: 1fr; }
+            table { font-size: 0.78rem; }
+            th, td { padding: 5px 6px; }
+            .analytics-grid { grid-template-columns: repeat(2, 1fr); }
+            #map { height: 220px; }
+        }
     </style>
 </head>
 <body>
@@ -65,6 +87,7 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
     (function () {
         var root = document.getElementById('analytics-root');
@@ -72,6 +95,25 @@
         function getFlag(code) {
             if (!code) return '';
             return code.replace(/./g, function(c) { return String.fromCodePoint(c.charCodeAt(0) + 127397); });
+        }
+
+        function fmtOffset(sec) {
+            if (sec == null) return '';
+            var h = Math.abs(Math.round(sec / 3600));
+            var sign = sec >= 0 ? '+' : '-';
+            return 'UTC' + sign + h;
+        }
+
+        function badge(v) {
+            var parts = [];
+            if (v.proxy) parts.push('<span class="badge badge-proxy"><i class="fas fa-user-secret"></i> Proxy/VPN</span>');
+            if (v.hosting) parts.push('<span class="badge badge-hosting"><i class="fas fa-cloud"></i> Hosting/DC</span>');
+            if (v.mobile) parts.push('<span class="badge badge-mobile"><i class="fas fa-mobile-alt"></i> Mobile</span>');
+            return parts.join(' ') || '<span class="badge badge-ok"><i class="fas fa-shield-alt"></i> Residential</span>';
+        }
+
+        function pageLabel(p) {
+            return p.replace('.html', '').replace(/^\//, '') || 'Home';
         }
 
         function loading() {
@@ -83,19 +125,58 @@
         }
 
         function render(visits) {
+            if (!visits.length) {
+                root.innerHTML = '<div class="analytics-section" style="text-align:center;padding:60px 20px;"><i class="fas fa-inbox" style="font-size:2rem;color:var(--color-text-muted);margin-bottom:12px;display:block;"></i><p style="color:var(--color-text-muted);">No visits recorded yet.</p></div>';
+                return;
+            }
+
+            // ---- Aggregate ----
             var total = visits.length;
             var uniqueIPs = new Set(visits.map(function(v) { return v.ip; })).size;
             var uniqueCountries = new Set(visits.map(function(v) { return v.country; })).size;
+            var uniqueCities = new Set(visits.map(function(v) { return v.country + '|' + v.city; }).filter(function(k) { return k.indexOf('|') < k.length - 1; })).size;
+            var uniqueIsps = new Set(visits.map(function(v) { return v.isp; }).filter(function(i) { return i; })).size;
+            var uniqueTzs = new Set(visits.map(function(v) { return v.timezone; }).filter(function(t) { return t; })).size;
 
             // Country breakdown
             var countryMap = {};
             visits.forEach(function(v) {
                 var key = v.country || 'Unknown';
-                if (!countryMap[key]) countryMap[key] = { count: 0, code: v.countryCode || '', flag: getFlag(v.countryCode || '') };
+                if (!countryMap[key]) countryMap[key] = { count: 0, code: v.countryCode || '' };
                 countryMap[key].count++;
             });
-            var countries = Object.keys(countryMap).map(function(k) { return { name: k, count: countryMap[k].count, code: countryMap[k].code, flag: countryMap[k].flag }; });
+            var countries = Object.keys(countryMap).map(function(k) { return { name: k, count: countryMap[k].count, code: countryMap[k].code, flag: getFlag(countryMap[k].code) }; });
             countries.sort(function(a, b) { return b.count - a.count; });
+
+            // Region breakdown
+            var regionMap = {};
+            visits.forEach(function(v) {
+                var key = v.regionName || v.country || 'Unknown';
+                if (!regionMap[key]) regionMap[key] = { count: 0, cc: v.countryCode || '' };
+                regionMap[key].count++;
+            });
+            var regions = Object.keys(regionMap).map(function(k) { return { name: k, count: regionMap[k].count, cc: regionMap[k].cc, flag: getFlag(regionMap[k].cc) }; });
+            regions.sort(function(a, b) { return b.count - a.count; });
+
+            // ISP breakdown
+            var ispMap = {};
+            visits.forEach(function(v) {
+                var key = v.isp || v.org || 'Unknown';
+                if (!ispMap[key]) ispMap[key] = { count: 0, asn: v.as || '', org: v.org || '' };
+                ispMap[key].count++;
+            });
+            var isps = Object.keys(ispMap).map(function(k) { return { name: k, count: ispMap[k].count, asn: ispMap[k].asn, org: ispMap[k].org }; });
+            isps.sort(function(a, b) { return b.count - a.count; });
+
+            // Timezone breakdown
+            var tzMap = {};
+            visits.forEach(function(v) {
+                var key = v.timezone || 'Unknown';
+                if (!tzMap[key]) tzMap[key] = { count: 0, offset: v.offset };
+                tzMap[key].count++;
+            });
+            var tzs = Object.keys(tzMap).map(function(k) { return { name: k, count: tzMap[k].count, offset: tzMap[k].offset }; });
+            tzs.sort(function(a, b) { return b.count - a.count; });
 
             // Page breakdown
             var pageMap = {};
@@ -107,12 +188,44 @@
             var pages = Object.keys(pageMap).map(function(k) { return { page: k, count: pageMap[k] }; });
             pages.sort(function(a, b) { return b.count - a.count; });
 
-            // Recent visits
+            // Daily traffic
+            var dayMap = {};
+            visits.forEach(function(v) {
+                if (v.timestamp) {
+                    var key = new Date(v.timestamp).toISOString().slice(0, 10);
+                    if (!dayMap[key]) dayMap[key] = 0;
+                    dayMap[key]++;
+                }
+            });
+            var dayKeys = Object.keys(dayMap).sort();
+            var maxDay = Math.max.apply(null, dayKeys.map(function(k) { return dayMap[k]; }), 1);
+
+            // IP locations for map
+            var ipLocations = {};
+            visits.forEach(function(v) {
+                if (v.ip && v.lat != null && v.lon != null && (v.lat !== 0 || v.lon !== 0)) {
+                    if (!ipLocations[v.ip]) {
+                        ipLocations[v.ip] = { lat: v.lat, lon: v.lon, count: 0, ip: v.ip, country: v.country, city: v.city, isp: v.isp, timezone: v.timezone };
+                    }
+                    ipLocations[v.ip].count++;
+                }
+            });
+            var locs = Object.keys(ipLocations).map(function(k) { return ipLocations[k]; });
+
+            // Security stats
+            var proxyCount = visits.filter(function(v) { return v.proxy; }).length;
+            var hostingCount = visits.filter(function(v) { return v.hosting; }).length;
+            var mobileCount = visits.filter(function(v) { return v.mobile; }).length;
+
+            var maxVal = Math.max(countries.length ? countries[0].count : 1, 1);
+            var maxPageVal = Math.max(pages.length ? pages[0].count : 1, 1);
+            var maxIsp = Math.max(isps.length ? isps[0].count : 1, 1);
+            var maxTz = Math.max(tzs.length ? tzs[0].count : 1, 1);
+            var maxRegion = Math.max(regions.length ? regions[0].count : 1, 1);
+
             var recent = visits.slice(-50).reverse();
 
-            var maxCountry = countries.length ? countries[0].count : 1;
-            var maxPage = pages.length ? pages[0].count : 1;
-
+            // ---- Build HTML ----
             var html = '';
 
             // Stats cards
@@ -120,66 +233,200 @@
             html += '<div class="analytics-card"><div class="analytics-card__num">' + total + '</div><div class="analytics-card__label">Total Visits</div></div>';
             html += '<div class="analytics-card"><div class="analytics-card__num">' + uniqueIPs + '</div><div class="analytics-card__label">Unique IPs</div></div>';
             html += '<div class="analytics-card"><div class="analytics-card__num">' + uniqueCountries + '</div><div class="analytics-card__label">Countries</div></div>';
-            html += '<div class="analytics-card"><div class="analytics-card__num">' + pages.length + '</div><div class="analytics-card__label">Pages Visited</div></div>';
+            html += '<div class="analytics-card"><div class="analytics-card__num">' + uniqueCities + '</div><div class="analytics-card__label">Cities</div></div>';
+            html += '<div class="analytics-card"><div class="analytics-card__num">' + pages.length + '</div><div class="analytics-card__label">Pages</div></div>';
+            html += '<div class="analytics-card"><div class="analytics-card__num">' + (uniqueIsps || '-') + '</div><div class="analytics-card__label">ISPs</div></div>';
+            html += '<div class="analytics-card"><div class="analytics-card__num">' + (uniqueTzs || '-') + '</div><div class="analytics-card__label">Timezones</div></div>';
+            html += '<div class="analytics-card"><div class="analytics-card__num">' + (proxyCount || 0) + '</div><div class="analytics-card__label">VPN / Proxy</div></div>';
             html += '</div>';
 
-            // Country breakdown
-            html += '<div class="analytics-section"><h2><i class="fas fa-globe" aria-hidden="true"></i> Visits by Country</h2>';
+            // Map
+            html += '<div class="analytics-section"><h2><i class="fas fa-map-marked-alt"></i> Visitor Locations</h2>';
+            html += '<div id="map"></div></div>';
+
+            // Country + ISP 2-col
+            html += '<div class="cols-2">';
+
+            html += '<div class="analytics-section"><h2><i class="fas fa-globe"></i> Visits by Country</h2>';
             if (countries.length) {
-                html += '<table><thead><tr><th>Country</th><th>Visits</th><th></th></tr></thead><tbody>';
+                html += '<div class="scroll-x"><table><thead><tr><th>Country</th><th>Visits</th><th></th></tr></thead><tbody>';
                 countries.forEach(function(c) {
                     var pct = Math.round(c.count / total * 100);
-                    var barW = Math.round(c.count / maxCountry * 100);
+                    var barW = Math.round(c.count / maxVal * 100);
                     html += '<tr><td>' + (c.flag || '') + ' ' + c.name + '</td><td><strong>' + c.count + '</strong></td><td><div class="bar-wrap"><div class="bar" style="width:' + barW + '%"></div><span class="pct">' + pct + '%</span></div></td></tr>';
                 });
-                html += '</tbody></table>';
+                html += '</tbody></table></div>';
             } else {
-                html += '<p style="color:var(--color-text-muted);">No data yet.</p>';
+                html += '<p style="color:var(--color-text-muted);">No data.</p>';
             }
             html += '</div>';
 
+            html += '<div class="analytics-section"><h2><i class="fas fa-building"></i> ISPs & Organizations</h2>';
+            if (isps.length && isps[0].name !== 'Unknown') {
+                html += '<div class="scroll-x"><table><thead><tr><th>ISP / Org</th><th>Visits</th><th></th></tr></thead><tbody>';
+                isps.forEach(function(s) {
+                    var pct = Math.round(s.count / total * 100);
+                    var barW = Math.round(s.count / maxIsp * 100);
+                    var asShort = s.asn ? ' <span class="code">' + s.asn.slice(0, 20) + '</span>' : '';
+                    html += '<tr><td>' + s.name + asShort + '</td><td><strong>' + s.count + '</strong></td><td><div class="bar-wrap"><div class="bar" style="width:' + barW + '%"></div><span class="pct">' + pct + '%</span></div></td></tr>';
+                });
+                html += '</tbody></table></div>';
+            } else {
+                html += '<p style="color:var(--color-text-muted);">No ISP data.</p>';
+            }
+            html += '</div>';
+
+            html += '</div>'; // cols-2
+
+            // Region + Timezone 2-col
+            html += '<div class="cols-2">';
+
+            html += '<div class="analytics-section"><h2><i class="fas fa-map-pin"></i> Visits by Region</h2>';
+            if (regions.length && regions[0].name !== 'Unknown') {
+                html += '<div class="scroll-x"><table><thead><tr><th>Region</th><th>Visits</th><th></th></tr></thead><tbody>';
+                regions.forEach(function(r) {
+                    var pct = Math.round(r.count / total * 100);
+                    var barW = Math.round(r.count / maxRegion * 100);
+                    html += '<tr><td>' + (r.flag || '') + ' ' + r.name + '</td><td><strong>' + r.count + '</strong></td><td><div class="bar-wrap"><div class="bar" style="width:' + barW + '%"></div><span class="pct">' + pct + '%</span></div></td></tr>';
+                });
+                html += '</tbody></table></div>';
+            } else {
+                html += '<p style="color:var(--color-text-muted);">No region data.</p>';
+            }
+            html += '</div>';
+
+            html += '<div class="analytics-section"><h2><i class="fas fa-clock"></i> Timezone Distribution</h2>';
+            if (tzs.length && tzs[0].name !== 'Unknown') {
+                html += '<div class="scroll-x"><table><thead><tr><th>Timezone</th><th>Offset</th><th>Visits</th><th></th></tr></thead><tbody>';
+                tzs.forEach(function(t) {
+                    var pct = Math.round(t.count / total * 100);
+                    var barW = Math.round(t.count / maxTz * 100);
+                    html += '<tr><td>' + t.name + '</td><td>' + fmtOffset(t.offset) + '</td><td><strong>' + t.count + '</strong></td><td><div class="bar-wrap"><div class="bar" style="width:' + barW + '%"></div><span class="pct">' + pct + '%</span></div></td></tr>';
+                });
+                html += '</tbody></table></div>';
+            } else {
+                html += '<p style="color:var(--color-text-muted);">No timezone data.</p>';
+            }
+            html += '</div>';
+
+            html += '</div>'; // cols-2
+
+            // Daily traffic
+            html += '<div class="analytics-section"><h2><i class="fas fa-chart-bar"></i> Daily Traffic</h2>';
+            if (dayKeys.length) {
+                html += '<div style="overflow-x:auto;padding-bottom:4px;"><div class="day-chart" style="min-width:' + Math.max(dayKeys.length * 40, 200) + 'px;">';
+                dayKeys.forEach(function(k) {
+                    var h = Math.round(dayMap[k] / maxDay * 100);
+                    html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;"><div class="day-chart__bar" style="height:' + h + 'px;"><span class="day-chart__count">' + dayMap[k] + '</span></div><div class="day-chart__label">' + k.slice(5) + '</div></div>';
+                });
+                html += '</div></div>';
+            } else {
+                html += '<p style="color:var(--color-text-muted);">No data.</p>';
+            }
+            html += '</div>';
+
+            // Security insights
+            html += '<div class="analytics-section"><h2><i class="fas fa-shield-alt"></i> Connection Insights</h2>';
+            html += '<div class="scroll-x"><table><thead><tr><th>Type</th><th>Visits</th><th>%</th><th></th></tr></thead><tbody>';
+            var secItems = [
+                { label: 'Residential / Normal', count: total - proxyCount - hostingCount, color: '#e8f5e9', cls: 'badge-ok' },
+                { label: 'VPN / Proxy', count: proxyCount, color: '#fce4ec', cls: 'badge-proxy' },
+                { label: 'Hosting / Data Center', count: hostingCount, color: '#e3f2fd', cls: 'badge-hosting' },
+                { label: 'Mobile Network', count: mobileCount, color: '#f3e5f5', cls: 'badge-mobile' }
+            ];
+            var maxSec = Math.max.apply(null, secItems.filter(function(s) { return s.count; }).map(function(s) { return s.count; }), 1);
+            secItems.forEach(function(s) {
+                if (s.count === 0) return;
+                var pct = Math.round(s.count / total * 100);
+                var barW = Math.round(s.count / maxSec * 100);
+                var icon = s.label.indexOf('Proxy') > -1 ? '<span class="sec-icon"><i class="fas fa-user-secret"></i></span>' :
+                           s.label.indexOf('Hosting') > -1 ? '<span class="sec-icon"><i class="fas fa-cloud"></i></span>' :
+                           s.label.indexOf('Mobile') > -1 ? '<span class="sec-icon"><i class="fas fa-mobile-alt"></i></span>' :
+                           '<span class="sec-icon"><i class="fas fa-shield-alt"></i></span>';
+                html += '<tr><td>' + icon + ' ' + s.label + '</td><td><strong>' + s.count + '</strong></td><td>' + pct + '%</td><td><div class="bar-wrap"><div class="bar" style="width:' + barW + '%;background:' + s.color.replace('#', 'var(--color-') + ';"></div></div></td></tr>';
+            });
+            html += '</tbody></table></div>';
+            html += '</div>';
+
             // Page breakdown
-            html += '<div class="analytics-section"><h2><i class="fas fa-file" aria-hidden="true"></i> Visits by Page</h2>';
+            html += '<div class="analytics-section"><h2><i class="fas fa-file"></i> Visits by Page</h2>';
             if (pages.length) {
-                html += '<table><thead><tr><th>Page</th><th>Visits</th><th></th></tr></thead><tbody>';
+                html += '<div class="scroll-x"><table><thead><tr><th>Page</th><th>Visits</th><th></th></tr></thead><tbody>';
                 pages.forEach(function(p) {
                     var pct = Math.round(p.count / total * 100);
-                    var barW = Math.round(p.count / maxPage * 100);
-                    var label = p.page.replace('.html', '').replace(/^\//, '') || 'Home';
-                    html += '<tr><td>' + label + '</td><td><strong>' + p.count + '</strong></td><td><div class="bar-wrap"><div class="bar" style="width:' + barW + '%"></div><span class="pct">' + pct + '%</span></div></td></tr>';
+                    var barW = Math.round(p.count / maxPageVal * 100);
+                    html += '<tr><td>' + pageLabel(p.page) + '</td><td><strong>' + p.count + '</strong></td><td><div class="bar-wrap"><div class="bar" style="width:' + barW + '%"></div><span class="pct">' + pct + '%</span></div></td></tr>';
                 });
-                html += '</tbody></table>';
+                html += '</tbody></table></div>';
             } else {
-                html += '<p style="color:var(--color-text-muted);">No data yet.</p>';
+                html += '<p style="color:var(--color-text-muted);">No data.</p>';
             }
             html += '</div>';
 
             // Recent visits
-            html += '<div class="analytics-section"><h2><i class="fas fa-clock" aria-hidden="true"></i> Recent Visits</h2>';
+            html += '<div class="analytics-section"><h2><i class="fas fa-clock"></i> Recent Visits</h2>';
             if (recent.length) {
-                html += '<div style="overflow-x:auto;"><table><thead><tr><th>Time</th><th>IP</th><th>Country</th><th>City</th><th>Page</th></tr></thead><tbody>';
+                html += '<div class="scroll-x"><table><thead><tr><th>Time</th><th>IP</th><th>Country</th><th>Region</th><th>City</th><th>ISP</th><th>Timezone</th><th>Page</th><th>Connection</th></tr></thead><tbody>';
                 recent.forEach(function(v) {
                     var flag = getFlag(v.countryCode || '');
                     var time = new Date(v.timestamp).toLocaleString();
-                    var page = v.page ? v.page.replace('.html', '').replace(/^\//, '') || 'Home' : 'Home';
-                    html += '<tr><td style="white-space:nowrap;">' + time + '</td><td><code style="font-size:0.8rem;">' + (v.ip || '') + '</code></td><td>' + (flag ? flag + ' ' : '') + (v.country || '') + '</td><td>' + (v.city || '') + '</td><td>' + page + '</td></tr>';
+                    html += '<tr><td style="white-space:nowrap;font-size:0.78rem;">' + time + '</td>';
+                    html += '<td><span class="code">' + (v.ip || '') + '</span></td>';
+                    html += '<td>' + (flag ? flag + ' ' : '') + (v.country || '') + '</td>';
+                    html += '<td>' + (v.regionName || '') + '</td>';
+                    html += '<td>' + (v.city || '') + '</td>';
+                    html += '<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (v.org || '') + '">' + (v.isp || v.org || '') + '</td>';
+                    html += '<td style="font-size:0.78rem;">' + (v.timezone || '') + '</td>';
+                    html += '<td>' + pageLabel(v.page || '/') + '</td>';
+                    html += '<td>' + badge(v) + '</td>';
+                    html += '</tr>';
                 });
                 html += '</tbody></table></div>';
             } else {
-                html += '<p style="color:var(--color-text-muted);">No data yet.</p>';
+                html += '<p style="color:var(--color-text-muted);">No data.</p>';
             }
             html += '</div>';
 
             // Last updated
-            html += '<div class="last-updated">Last refreshed: ' + new Date().toLocaleString() + '</div>';
+            html += '<div class="last-updated">Last refreshed: ' + new Date().toLocaleString() + ' &middot; ' + total + ' total visits</div>';
 
             root.innerHTML = html;
+
+            // Init map
+            if (typeof L !== 'undefined' && locs.length) {
+                var map = L.map('map').setView([locs[0].lat, locs[0].lon], 2);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://openstreetmap.org/copyright">OSM</a>',
+                    maxZoom: 18
+                }).addTo(map);
+
+                var bounds = [];
+                locs.forEach(function(loc) {
+                    var popup = '<strong>' + (loc.country || 'Unknown') + '</strong>';
+                    if (loc.city) popup += '<br>' + loc.city;
+                    if (loc.isp) popup += '<br><small>' + loc.isp + '</small>';
+                    popup += '<br><span class="code">' + loc.ip + '</span>';
+                    popup += '<br>' + loc.count + ' visit' + (loc.count > 1 ? 's' : '');
+                    var m = L.marker([loc.lat, loc.lon]).addTo(map);
+                    m.bindPopup(popup);
+                    bounds.push([loc.lat, loc.lon]);
+                });
+
+                if (bounds.length > 1) {
+                    map.fitBounds(bounds, { padding: [30, 30] });
+                }
+            } else if (typeof L !== 'undefined') {
+                var map = L.map('map').setView([20, 0], 2);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://openstreetmap.org/copyright">OSM</a>',
+                    maxZoom: 18
+                }).addTo(map);
+            }
         }
 
         function fetchData() {
             loading();
             fetch('https://raw.githubusercontent.com/thekingsmakers/desertlink.it.com/main/data/visits.json?' + Date.now())
-
                 .then(function(r) {
                     if (!r.ok) throw new Error('Failed to fetch (HTTP ' + r.status + ')');
                     return r.json();
