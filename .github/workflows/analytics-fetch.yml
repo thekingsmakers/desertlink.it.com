@@ -1,0 +1,77 @@
+name: Fetch Analytics Data
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch from Pipedream
+        run: |
+          # Fetch recent events from Pipedream HTTP source
+          # Requires PIPEDREAM_API_KEY and PIPEDREAM_SOURCE_ID secrets
+          curl -s -H "Authorization: Bearer ${{ secrets.PIPEDREAM_API_KEY }}" \
+            "https://api.pipedream.com/v1/sources/${{ secrets.PIPEDREAM_SOURCE_ID }}/events?limit=100" \
+            -o pipedream_events.json
+
+      - name: Merge into visits.json
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = 'data/visits.json';
+
+          // Read existing visits
+          let existing = [];
+          try { existing = JSON.parse(fs.readFileSync(path, 'utf8')); } catch(e) {}
+          const existingIds = new Set(existing.map(v => v.visit?.id || v.id));
+
+          // Read Pipedream events
+          let pdEvents = [];
+          try {
+            const raw = JSON.parse(fs.readFileSync('pipedream_events.json', 'utf8'));
+            pdEvents = raw.data || raw.events || (Array.isArray(raw) ? raw : []);
+          } catch(e) {}
+
+          let newCount = 0;
+          pdEvents.forEach(function(evt) {
+            const body = evt.body || evt.event || {};
+            let visits = [];
+            if (body.event === 'pageview' && body.visit) {
+              visits = [body.visit];
+            } else if (body.event === 'pageview_batch' && Array.isArray(body.visits)) {
+              visits = body.visits;
+            }
+            visits.forEach(function(v) {
+              if (v && v.id && !existingIds.has(v.id)) {
+                existing.push(v);
+                existingIds.add(v.id);
+                newCount++;
+              }
+            });
+          });
+
+          fs.writeFileSync(path, JSON.stringify(existing, null, 2));
+          console.log('New visits added:', newCount);
+          console.log('Total visits:', existing.length);
+
+          // Write count to summary for commit message
+          fs.writeFileSync('analytics_summary.txt', 'New: ' + newCount + ' | Total: ' + existing.length);
+          "
+
+      - name: Commit and push
+        run: |
+          SUMMARY=$(cat analytics_summary.txt)
+          git config user.name 'desertlink-analytics[bot]'
+          git config user.email 'analytics@desertlink.it.com'
+          git add data/visits.json
+          git diff --cached --quiet || git commit -m "analytics: update visits ($SUMMARY)"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git push
