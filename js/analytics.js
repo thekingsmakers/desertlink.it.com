@@ -49,7 +49,7 @@
         if (!WEBHOOK_URL) return Promise.resolve();
         return fetch(WEBHOOK_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ site: SITE_NAME, event: 'pageview', visit: visit })
         }).catch(function () {
             // Queue for later
@@ -67,7 +67,7 @@
         localStorage.removeItem('dt_analytics_queue');
         fetch(WEBHOOK_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ site: SITE_NAME, event: 'pageview_batch', visits: queue })
         }).catch(function () {
             // Re-queue if still fails

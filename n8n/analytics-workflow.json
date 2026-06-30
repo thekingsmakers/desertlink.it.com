@@ -64,7 +64,7 @@
       "typeVersion": 2,
       "position": [950, 300],
       "parameters": {
-        "jsCode": "const data = $input.first().json;\n\nconst visit = data.body?.visit || data.visit;\nif (!visit) throw new Error('No visit data');\n\nconst base64content = data.content || '';\nconst sha = data.sha || '';\n\nlet visits = [];\ntry {\n  const decoded = Buffer.from(base64content, 'base64').toString('utf-8');\n  visits = JSON.parse(decoded);\n  if (!Array.isArray(visits)) visits = [];\n} catch(e) {\n  visits = [];\n}\n\nconst existingIds = new Set(visits.map(v => v && v.id));\nif (!existingIds.has(visit.id)) {\n  visits.push(visit);\n}\n\nconst raw = JSON.stringify(visits, null, 2);\nreturn [{ json: { content: Buffer.from(raw).toString('base64'), sha: sha, totalVisits: visits.length } }];\n"
+        "jsCode": "const data = $input.first().json;\n\n// Body is text/plain so parse it\nconst body = typeof data.body === 'string' ? JSON.parse(data.body) : (data.body || {});\nconst visitsToAdd = body.visit ? [body.visit] : (body.visits || []);\nif (!visitsToAdd.length) throw new Error('No visit data found');\n\nconst base64content = data.content || '';\nconst sha = data.sha || '';\n\nlet visits = [];\ntry {\n  const decoded = Buffer.from(base64content, 'base64').toString('utf-8');\n  visits = JSON.parse(decoded);\n  if (!Array.isArray(visits)) visits = [];\n} catch(e) {\n  visits = [];\n}\n\nconst existingIds = new Set(visits.map(v => v && v.id));\nvisitsToAdd.forEach(function(v) {\n  if (v && v.id && !existingIds.has(v.id)) {\n    visits.push(v);\n    existingIds.add(v.id);\n  }\n});\n\nconst raw = JSON.stringify(visits, null, 2);\nreturn [{ json: { content: Buffer.from(raw).toString('base64'), sha: sha, totalVisits: visits.length } }];\n"
       }
     },
     {
