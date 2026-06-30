@@ -1,0 +1,122 @@
+{
+  "name": "DesertLink Analytics",
+  "active": false,
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "analytics",
+        "options": {},
+        "responseMode": "responseNode",
+        "response": {
+          "respondWith": "json",
+          "responseBody": "{\"success\":true}"
+        }
+      },
+      "webhookId": "analytics"
+    },
+    {
+      "id": "get-file",
+      "name": "Get visits.json",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 240],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.github.com/repos/thekingsmakers/desertlink.it.com/contents/data/visits.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": {
+          "headers": {
+            "parameter": [
+              { "name": "Accept", "value": "application/vnd.github.v3+json" },
+              { "name": "User-Agent", "value": "n8n-desertlink-analytics" }
+            ]
+          }
+        },
+        "options": {},
+        "sendBody": false,
+        "sendQuery": false,
+        "sendFullResponse": false
+      }
+    },
+    {
+      "id": "merge",
+      "name": "Merge inputs",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [750, 300],
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition"
+      }
+    },
+    {
+      "id": "code",
+      "name": "Merge visit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [950, 300],
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst visit = data.body?.visit || data.visit;\nif (!visit) throw new Error('No visit data');\n\nconst base64content = data.content || '';\nconst sha = data.sha || '';\n\nlet visits = [];\ntry {\n  const decoded = Buffer.from(base64content, 'base64').toString('utf-8');\n  visits = JSON.parse(decoded);\n  if (!Array.isArray(visits)) visits = [];\n} catch(e) {\n  visits = [];\n}\n\nconst existingIds = new Set(visits.map(v => v && v.id));\nif (!existingIds.has(visit.id)) {\n  visits.push(visit);\n}\n\nconst raw = JSON.stringify(visits, null, 2);\nreturn [{ json: { content: Buffer.from(raw).toString('base64'), sha: sha, totalVisits: visits.length } }];\n"
+      }
+    },
+    {
+      "id": "update-file",
+      "name": "Update visits.json",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1150, 300],
+      "parameters": {
+        "method": "PUT",
+        "url": "https://api.github.com/repos/thekingsmakers/desertlink.it.com/contents/data/visits.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "message", "value": "analytics: record visit" },
+            { "name": "content", "value": "={{ $json.content }}" },
+            { "name": "sha", "value": "={{ $json.sha }}" }
+          ]
+        },
+        "sendHeaders": true,
+        "specifyHeaders": {
+          "headers": {
+            "parameter": [
+              { "name": "Accept", "value": "application/vnd.github.v3+json" },
+              { "name": "User-Agent", "value": "n8n-desertlink-analytics" }
+            ]
+          }
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[
+        { "node": "Get visits.json", "type": "main", "index": 0 },
+        { "node": "Merge inputs", "type": "main", "index": 0 }
+      ]]
+    },
+    "Get visits.json": {
+      "main": [[{ "node": "Merge inputs", "type": "main", "index": 1 }]]
+    },
+    "Merge inputs": {
+      "main": [[{ "node": "Merge visit", "type": "main", "index": 0 }]]
+    },
+    "Merge visit": {
+      "main": [[{ "node": "Update visits.json", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "tags": []
+}

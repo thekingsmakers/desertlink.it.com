@@ -2,7 +2,7 @@
     'use strict';
 
     // CONFIG - user must set these
-    var WEBHOOK_URL = 'https://527e363d7e41e3e83d5a3d2d2d449e15.m.pipedream.net';
+    var WEBHOOK_URL = 'https://nen.technochase.com/webhook/analytics';
     var SITE_NAME = 'DesertLink IT';
 
     // UUID generator
