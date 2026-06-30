@@ -1866,6 +1866,10 @@ ul {
     justify-content: center;
 }
 
+.story__image .video-wrap {
+    width: 100%;
+}
+
 .story__image svg {
     width: 100%;
     max-width: 460px;
