@@ -179,6 +179,7 @@
         function fetchData() {
             loading();
             fetch('https://raw.githubusercontent.com/thekingsmakers/desertlink.it.com/main/data/visits.json?' + Date.now())
+
                 .then(function(r) {
                     if (!r.ok) throw new Error('Failed to fetch (HTTP ' + r.status + ')');
                     return r.json();
