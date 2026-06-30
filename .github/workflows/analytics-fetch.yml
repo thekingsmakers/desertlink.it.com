@@ -13,6 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
 
       - name: Fetch from Pipedream
         run: |
@@ -73,6 +76,28 @@ jobs:
           git config user.email 'analytics@desertlink.it.com'
           git add data/visits.json
           git diff --cached --quiet || git commit -m "analytics: update visits ($SUMMARY)"
+
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
 
-          git push
+          BRANCH="${{ github.ref_name }}"
+          git fetch origin --no-tags --prune
+
+          if git rev-parse --verify HEAD >/dev/null 2>&1; then
+            git pull --rebase origin "$BRANCH" || git merge --no-edit origin/"$BRANCH" || true
+          else
+            git checkout -B "$BRANCH" origin/"$BRANCH"
+          fi
+
+          MAX_ATTEMPTS=3
+          attempt=1
+          until git push origin "HEAD:$BRANCH"; do
+            if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
+              echo "git push failed after $attempt attempts"
+              exit 1
+            fi
+            echo "git push failed, fetching & rebasing and retrying (attempt: $attempt)"
+            git fetch origin --no-tags --prune
+            git pull --rebase origin "$BRANCH" || git merge --no-edit origin/"$BRANCH" || true
+            attempt=$((attempt+1))
+            sleep 1
+          done
