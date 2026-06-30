@@ -6,114 +6,33 @@
       "id": "webhook",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1.1,
+      "typeVersion": 1,
       "position": [250, 300],
       "parameters": {
         "httpMethod": "POST",
         "path": "analytics",
         "options": {},
-        "responseMode": "responseNode",
+        "responseMode": "onReceived",
         "response": {
           "respondWith": "json",
           "responseBody": "{\"success\":true}"
         }
-      },
-      "webhookId": "analytics"
-    },
-    {
-      "id": "get-file",
-      "name": "Get visits.json",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [500, 240],
-      "parameters": {
-        "method": "GET",
-        "url": "https://api.github.com/repos/thekingsmakers/desertlink.it.com/contents/data/visits.json",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "specifyHeaders": {
-          "headers": {
-            "parameter": [
-              { "name": "Accept", "value": "application/vnd.github.v3+json" },
-              { "name": "User-Agent", "value": "n8n-desertlink-analytics" }
-            ]
-          }
-        },
-        "options": {},
-        "sendBody": false,
-        "sendQuery": false,
-        "sendFullResponse": false
       }
     },
     {
-      "id": "merge",
-      "name": "Merge inputs",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 2,
-      "position": [750, 300],
-      "parameters": {
-        "mode": "combine",
-        "combinationMode": "mergeByPosition"
-      }
-    },
-    {
-      "id": "code",
-      "name": "Merge visit",
+      "id": "process",
+      "name": "Process Visit",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [950, 300],
+      "position": [500, 300],
       "parameters": {
-        "jsCode": "const data = $input.first().json;\n\n// Body is text/plain so parse it\nconst body = typeof data.body === 'string' ? JSON.parse(data.body) : (data.body || {});\nconst visitsToAdd = body.visit ? [body.visit] : (body.visits || []);\nif (!visitsToAdd.length) throw new Error('No visit data found');\n\nconst base64content = data.content || '';\nconst sha = data.sha || '';\n\nlet visits = [];\ntry {\n  const decoded = Buffer.from(base64content, 'base64').toString('utf-8');\n  visits = JSON.parse(decoded);\n  if (!Array.isArray(visits)) visits = [];\n} catch(e) {\n  visits = [];\n}\n\nconst existingIds = new Set(visits.map(v => v && v.id));\nvisitsToAdd.forEach(function(v) {\n  if (v && v.id && !existingIds.has(v.id)) {\n    visits.push(v);\n    existingIds.add(v.id);\n  }\n});\n\nconst raw = JSON.stringify(visits, null, 2);\nreturn [{ json: { content: Buffer.from(raw).toString('base64'), sha: sha, totalVisits: visits.length } }];\n"
-      }
-    },
-    {
-      "id": "update-file",
-      "name": "Update visits.json",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1150, 300],
-      "parameters": {
-        "method": "PUT",
-        "url": "https://api.github.com/repos/thekingsmakers/desertlink.it.com/contents/data/visits.json",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            { "name": "message", "value": "analytics: record visit" },
-            { "name": "content", "value": "={{ $json.content }}" },
-            { "name": "sha", "value": "={{ $json.sha }}" }
-          ]
-        },
-        "sendHeaders": true,
-        "specifyHeaders": {
-          "headers": {
-            "parameter": [
-              { "name": "Accept", "value": "application/vnd.github.v3+json" },
-              { "name": "User-Agent", "value": "n8n-desertlink-analytics" }
-            ]
-          }
-        },
-        "options": {}
+        "jsCode": "// Get visit from webhook\nconst body = typeof $json.body === 'string' ? JSON.parse($json.body) : ($json.body || {});\nconst visitsToAdd = body.visit ? [body.visit] : (body.visits || []);\nif (!visitsToAdd.length) throw new Error('No visit data');\n\n// Your GitHub token (paste below)\n// Create at: https://github.com/settings/tokens (needs repo scope)\nconst GITHUB_TOKEN = '__YOUR_GITHUB_TOKEN__';\n\nconst headers = {\n  'Authorization': 'Bearer ' + GITHUB_TOKEN,\n  'Accept': 'application/vnd.github.v3+json',\n  'User-Agent': 'n8n-analytics'\n};\n\nconst url = 'https://api.github.com/repos/thekingsmakers/desertlink.it.com/contents/data/visits.json';\n\n// 1. Fetch current file\nconst getRes = await $http.get(url, { headers });\nconst sha = getRes.data.sha;\n\nlet visits = [];\ntry {\n  const decoded = Buffer.from(getRes.data.content, 'base64').toString('utf-8');\n  visits = JSON.parse(decoded);\n  if (!Array.isArray(visits)) visits = [];\n} catch(e) {}\n\n// 2. Merge new visits (dedup by id)\nconst existingIds = new Set(visits.map(v => v && v.id));\nvisitsToAdd.forEach(v => {\n  if (v && v.id && !existingIds.has(v.id)) {\n    visits.push(v);\n    existingIds.add(v.id);\n  }\n});\n\n// 3. Push updated file\nconst raw = JSON.stringify(visits, null, 2);\nawait $http.put(url, {\n  message: 'analytics: record visit',\n  content: Buffer.from(raw).toString('base64'),\n  sha: sha\n}, { headers });\n\nreturn [{ json: { success: true, total: visits.length, added: visitsToAdd.length } }];\n"
       }
     }
   ],
   "connections": {
     "Webhook": {
-      "main": [[
-        { "node": "Get visits.json", "type": "main", "index": 0 },
-        { "node": "Merge inputs", "type": "main", "index": 0 }
-      ]]
-    },
-    "Get visits.json": {
-      "main": [[{ "node": "Merge inputs", "type": "main", "index": 1 }]]
-    },
-    "Merge inputs": {
-      "main": [[{ "node": "Merge visit", "type": "main", "index": 0 }]]
-    },
-    "Merge visit": {
-      "main": [[{ "node": "Update visits.json", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Process Visit", "type": "main", "index": 0 }]]
     }
   },
   "settings": {},
