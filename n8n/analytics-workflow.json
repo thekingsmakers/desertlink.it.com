@@ -27,7 +27,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const visitsToAdd = $json.visitsToAdd;\n\nconst enriched = await Promise.all(visitsToAdd.map(async (v) => {\n  if (v.ip) {\n    try {\n      const res = await fetch('http://ip-api.com/json/' + v.ip);\n      const d = await res.json();\n      if (d && d.status === 'success') {\n        v.country = d.country || '';\n        v.countryCode = d.countryCode || '';\n        v.city = d.city || '';\n      }\n    } catch (e) {}\n  }\n  return v;\n}));\n\nreturn [{ json: { visitsToAdd: enriched } }];"
+        "jsCode": "const visitsToAdd = $json.visitsToAdd;\nconst http = require('http');\n\nconst enriched = await Promise.all(visitsToAdd.map(async (v) => {\n  if (v.ip) {\n    try {\n      const d = await new Promise((resolve, reject) => {\n        http.get('http://ip-api.com/json/' + v.ip, (res) => {\n          let data = '';\n          res.on('data', chunk => data += chunk);\n          res.on('end', () => {\n            try { resolve(JSON.parse(data)); }\n            catch (e) { reject(e); }\n          });\n        }).on('error', reject);\n      });\n      if (d && d.status === 'success') {\n        v.country = d.country || '';\n        v.countryCode = d.countryCode || '';\n        v.city = d.city || '';\n      }\n    } catch (e) {}\n  }\n  return v;\n}));\n\nreturn [{ json: { visitsToAdd: enriched } }];"
       },
       "id": "geo-node",
       "name": "Geo Enrich",
