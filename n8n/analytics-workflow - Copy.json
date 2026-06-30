@@ -6,7 +6,9 @@
         "httpMethod": "POST",
         "path": "analytics",
         "responseMode": "responseNode",
-        "options": { "rawBody": true }
+        "options": {
+          "rawBody": true
+        }
       },
       "id": "webhook-node",
       "name": "Webhook",
@@ -17,7 +19,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function getRawBody() {\n  if (Buffer.isBuffer($json.body)) return $json.body.toString('utf-8');\n  if (typeof $json.body === 'string') return $json.body;\n  if ($json.body && typeof $json.body === 'object') return $json.body;\n  if (typeof $json === 'string') return $json;\n  if ($json.data) return $json.data;\n  return $json;\n}\n\nlet payload = getRawBody();\nif (typeof payload === 'string') {\n  try { payload = JSON.parse(payload); }\n  catch (e) { throw new Error('Could not parse incoming body as JSON: ' + payload.slice(0, 300)); }\n}\n\nconst visitsToAdd = payload.visit ? [payload.visit] : (payload.visits || []);\nif (!visitsToAdd.length) {\n  throw new Error('No visit data. Payload: ' + JSON.stringify(payload).slice(0, 300));\n}\n\nconst cleanVisits = visitsToAdd.filter(v => v && typeof v === 'object' && v.id);\nif (!cleanVisits.length) {\n  throw new Error('Visit entries missing required \"id\" field.');\n}\n\nreturn [{ json: { visitsToAdd: cleanVisits } }];"
+        "jsCode": "// ---------- 1. Parse incoming payload robustly ----------\n// Frontend sends Content-Type: text/plain to dodge CORS preflight,\n// so n8n may hand us a raw string, a Buffer, or an already-parsed object.\n\nfunction getRawBody() {\n  if (Buffer.isBuffer($json.body)) return $json.body.toString('utf-8');\n  if (typeof $json.body === 'string') return $json.body;\n  if ($json.body && typeof $json.body === 'object') return $json.body;\n  if (typeof $json === 'string') return $json;\n  if ($json.data) return $json.data;\n  return $json;\n}\n\nlet payload = getRawBody();\nif (typeof payload === 'string') {\n  try {\n    payload = JSON.parse(payload);\n  } catch (e) {\n    throw new Error('Could not parse incoming body as JSON: ' + payload.slice(0, 300));\n  }\n}\n\nconst visitsToAdd = payload.visit ? [payload.visit] : (payload.visits || []);\nif (!visitsToAdd.length) {\n  throw new Error('No visit data. Payload received: ' + JSON.stringify(payload).slice(0, 300));\n}\n\nconst cleanVisits = visitsToAdd.filter(v => v && typeof v === 'object' && v.id);\nif (!cleanVisits.length) {\n  throw new Error('Visit entries missing required \"id\" field.');\n}\n\nreturn [{ json: { visitsToAdd: cleanVisits } }];"
       },
       "id": "parse-node",
       "name": "Parse Visit Payload",
@@ -27,50 +29,57 @@
     },
     {
       "parameters": {
-        "jsCode": "const visitsToAdd = $json.visitsToAdd;\n\nconst enriched = await Promise.all(visitsToAdd.map(async (v) => {\n  if (v.ip) {\n    try {\n      const res = await fetch('http://ip-api.com/json/' + v.ip);\n      const d = await res.json();\n      if (d && d.status === 'success') {\n        v.country = d.country || '';\n        v.countryCode = d.countryCode || '';\n        v.city = d.city || '';\n      }\n    } catch (e) {}\n  }\n  return v;\n}));\n\nreturn [{ json: { visitsToAdd: enriched } }];"
-      },
-      "id": "geo-node",
-      "name": "Geo Enrich",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [600, 300]
-    },
-    {
-      "parameters": {
         "method": "GET",
         "url": "https://api.github.com/repos/thekingsmakers/desertlink.it.com/contents/data/visits.json",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "githubApi",
-        "options": { "response": { "response": { "fullResponse": false } } },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          }
+        },
         "headerParametersUi": {
-          "parameter": [ { "name": "User-Agent", "value": "n8n-analytics" } ]
+          "parameter": [
+            { "name": "User-Agent", "value": "n8n-analytics" }
+          ]
         }
       },
       "id": "github-get-node",
       "name": "Get visits.json",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [740, 300]
+      "position": [680, 300]
     },
     {
       "parameters": {
-        "jsCode": "const visitsToAdd = $('Geo Enrich').item.json.visitsToAdd;\nconst getRes = $json;\n\nconst sha = getRes.sha;\nlet visits = [];\ntry {\n  const decoded = Buffer.from(getRes.content, 'base64').toString('utf-8');\n  const parsed = JSON.parse(decoded);\n  if (Array.isArray(parsed)) visits = parsed;\n} catch (e) {\n  throw new Error('Existing visits.json is corrupted - aborting to avoid data loss: ' + e.message);\n}\n\nconst existingIds = new Set(visits.map(v => v && v.id));\nlet added = 0;\nvisitsToAdd.forEach(v => {\n  if (v && v.id && !existingIds.has(v.id)) {\n    visits.push(v);\n    existingIds.add(v.id);\n    added++;\n  }\n});\n\nconst raw = JSON.stringify(visits, null, 2);\nconst contentBase64 = Buffer.from(raw).toString('base64');\n\nreturn [{ json: { sha, contentBase64, total: visits.length, added, skip: added === 0 } }];"
+        "jsCode": "// ---------- 2. Merge new visits (dedup by id) ----------\n// No GitHub calls here, only pure merge logic.\n\nconst visitsToAdd = $('Parse Visit Payload').item.json.visitsToAdd;\nconst getRes = $json; // output of \"Get visits.json\" HTTP Request node\n\nconst sha = getRes.sha;\nlet visits = [];\ntry {\n  const decoded = Buffer.from(getRes.content, 'base64').toString('utf-8');\n  const parsed = JSON.parse(decoded);\n  if (Array.isArray(parsed)) visits = parsed;\n} catch (e) {\n  throw new Error('Existing visits.json is corrupted - aborting to avoid data loss: ' + e.message);\n}\n\nconst existingIds = new Set(visits.map(v => v && v.id));\nlet added = 0;\nvisitsToAdd.forEach(v => {\n  if (v && v.id && !existingIds.has(v.id)) {\n    visits.push(v);\n    existingIds.add(v.id);\n    added++;\n  }\n});\n\nconst raw = JSON.stringify(visits, null, 2);\nconst contentBase64 = Buffer.from(raw).toString('base64');\n\nreturn [{\n  json: {\n    sha,\n    contentBase64,\n    total: visits.length,\n    added,\n    skip: added === 0\n  }\n}];"
       },
       "id": "merge-node",
       "name": "Merge Visits",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [960, 300]
+      "position": [900, 300]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{
-            "leftValue": "={{ $json.skip }}",
-            "rightValue": true,
-            "operator": { "type": "boolean", "operation": "false" }
-          }],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
           "combinator": "and"
         }
       },
@@ -78,7 +87,7 @@
       "name": "Has New Visits?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1180, 300]
+      "position": [1120, 300]
     },
     {
       "parameters": {
@@ -90,14 +99,16 @@
         "specifyBody": "json",
         "jsonBody": "={{ { \"message\": \"analytics: record visit\", \"content\": $json.contentBase64, \"sha\": $json.sha } }}",
         "headerParametersUi": {
-          "parameter": [ { "name": "User-Agent", "value": "n8n-analytics" } ]
+          "parameter": [
+            { "name": "User-Agent", "value": "n8n-analytics" }
+          ]
         }
       },
       "id": "github-put-node",
       "name": "Write visits.json",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1400, 220],
+      "position": [1340, 220],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 5,
@@ -121,7 +132,7 @@
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1620, 220]
+      "position": [1560, 220]
     },
     {
       "parameters": {
@@ -141,27 +152,41 @@
       "name": "Respond No-op",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1400, 400]
+      "position": [1340, 400]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { success: false, error: 'GitHub write failed after retries.' } }}",
-        "options": { "responseCode": 502, "responseHeaders": { "entries": [{ "name": "Access-Control-Allow-Origin", "value": "*" }] } }
+        "responseBody": "={{ { success: false, error: 'GitHub write failed after retries, possibly due to repeated sha conflicts. Try again.' } }}",
+        "options": {
+          "responseCode": 502,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
       },
       "id": "respond-error-node",
       "name": "Respond Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1620, 60]
+      "position": [1560, 60]
     }
   ],
   "connections": {
-    "Webhook": { "main": [[{ "node": "Parse Visit Payload", "type": "main", "index": 0 }]] },
-    "Parse Visit Payload": { "main": [[{ "node": "Geo Enrich", "type": "main", "index": 0 }]] },
-    "Geo Enrich": { "main": [[{ "node": "Get visits.json", "type": "main", "index": 0 }]] },
-    "Get visits.json": { "main": [[{ "node": "Merge Visits", "type": "main", "index": 0 }]] },
-    "Merge Visits": { "main": [[{ "node": "Has New Visits?", "type": "main", "index": 0 }]] },
+    "Webhook": {
+      "main": [[{ "node": "Parse Visit Payload", "type": "main", "index": 0 }]]
+    },
+    "Parse Visit Payload": {
+      "main": [[{ "node": "Get visits.json", "type": "main", "index": 0 }]]
+    },
+    "Get visits.json": {
+      "main": [[{ "node": "Merge Visits", "type": "main", "index": 0 }]]
+    },
+    "Merge Visits": {
+      "main": [[{ "node": "Has New Visits?", "type": "main", "index": 0 }]]
+    },
     "Has New Visits?": {
       "main": [
         [{ "node": "Write visits.json", "type": "main", "index": 0 }],
@@ -176,5 +201,7 @@
     }
   },
   "active": false,
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1"
+  }
 }

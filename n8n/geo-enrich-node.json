@@ -1,0 +1,10 @@
+{
+  "parameters": {
+    "jsCode": "const visitsToAdd = $json.visitsToAdd;\n\nconst enriched = await Promise.all(visitsToAdd.map(async (v) => {\n  if (v.ip) {\n    try {\n      const res = await fetch('http://ip-api.com/json/' + v.ip);\n      const d = await res.json();\n      if (d && d.status === 'success') {\n        v.country = d.country || '';\n        v.countryCode = d.countryCode || '';\n        v.city = d.city || '';\n      }\n    } catch (e) {\n      // geo lookup failed, leave fields empty\n    }\n  }\n  return v;\n}));\n\nreturn [{ json: { visitsToAdd: enriched } }];\n"
+  },
+  "id": "geo-node",
+  "name": "Geo Enrich",
+  "type": "n8n-nodes-base.code",
+  "typeVersion": 2,
+  "position": [600, 300]
+}
